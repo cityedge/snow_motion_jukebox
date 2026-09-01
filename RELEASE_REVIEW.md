@@ -1,0 +1,66 @@
+# Snow / Motion v1.0.0 公開前レビュー
+
+確認日: 2026-09-02
+
+## 対象
+
+- 8曲の内蔵ジュークボックスモード
+- 通常モードとランダムステージ
+- 外部音源と任意SRT字幕
+- ポーズ、クリア、次曲遷移
+- 雪、FOG、風、ナイター、トンネル、先行者
+- 雪面、木、岩、トンネルのテクスチャ
+- マスター音量とFPS表示
+- GitHub Pages向け静的ビルド
+
+## 自動確認
+
+```text
+npm test          PASS
+npm run build     PASS
+git diff --check  エラーなし
+```
+
+ステージ、字幕、スペクトラム、環境、天候、照明、先行者、メニュー音声、音量保存、ランダム生成、外部音源、画面遷移のスモークテストを実行しました。
+
+## 実画面確認
+
+- メインメニュー表示、日英切り替え
+- 最初から滑る、曲選択、通常／ランダム起動
+- 音量変更と再読み込み後の保存
+- FPS初期非表示と`F`による表示
+- ポーズ／クリア画面のキーボード操作
+- 1690×856の横長画面で遠景端と遠景樹林を確認
+- 横長画面の実走時CPUフレーム時間 約0.8ms
+- 遠景拡張後も60FPSを維持
+
+## ライセンス確認
+
+- プロジェクト本体: MIT License
+- three.js、music-metadata: MIT
+- Rapier、Playwright: Apache-2.0
+- ShareTextures由来素材: CC0
+- 詳細は`THIRD_PARTY_NOTICES.md`
+
+## 配布物
+
+正式な配布物は`dist/snow-motion-v1.0.0.zip`の1つです。通常どおり展開すると`snow-motion-v1.0.0/`フォルダが1つ作られ、その中に以下を収録します。
+
+- `src/`、ルートの`index.html`、`vite.config.js`
+- `package.json`、`package-lock.json`
+- 実行時に使うものだけに整理した`music_data/`と`textures/`
+- テストとパッケージ生成処理を含む`scripts/`
+- GitHub Pagesで公開可能なビルド済み`docs/`
+- README、ユーザーガイド、変更履歴、レビュー、引き継ぎ、第三者ライセンス、MIT License
+
+別ワークスペースへ展開後、`npm ci`、`npm test`、`npm run build`で同じゲームを再構築できます。廃止済みイントロ／ポーズ／クリアBGM、未使用カバーアート、素材ZIP、開発用一時ファイルは収録しません。
+
+正式ZIPを`tests/tmp/release-rebuild-check/`へクリーン展開し、オフラインキャッシュを使った`npm ci`、全スモークテスト、`docs/`の再ビルドがすべて成功することを確認しました。パッケージ生成処理自身も必須ファイルと除外対象を検査します。
+
+## 公開後に確認する項目
+
+- GitHub Pagesの実URLで全アセットがHTTP 200になること
+- 内蔵曲の再生と字幕
+- 外部音源ファイル選択
+- ChromeとEdgeでの初回音声許可
+- GitHub上でREADME、LICENSE、第三者ライセンスが表示されること

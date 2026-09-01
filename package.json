@@ -1,0 +1,38 @@
+{
+  "name": "snow-motion",
+  "version": "1.0.0",
+  "description": "A browser-based 3D snowboard jukebox game.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "build:pages": "vite build",
+    "package:release": "npm run build && pwsh -NoProfile -File scripts/package-release.ps1",
+    "preview": "vite preview --host 0.0.0.0",
+    "test:stage": "node scripts/stage-smoke.mjs",
+    "test:subtitles": "node scripts/subtitle-smoke.mjs",
+    "test:spectrum": "node scripts/spectrum-smoke.mjs",
+    "test:environment": "node scripts/environment-smoke.mjs",
+    "test:weather": "node scripts/weather-smoke.mjs",
+    "test:night-lighting": "node scripts/night-lighting-smoke.mjs",
+    "test:lead-boarder": "node scripts/lead-boarder-smoke.mjs",
+    "test:menu-audio": "node scripts/menu-audio-smoke.mjs",
+    "test:volume-settings": "node scripts/volume-settings-smoke.mjs",
+    "test:run-mode": "node scripts/run-mode-smoke.mjs",
+    "test:random-profile": "node scripts/random-profile-smoke.mjs",
+    "test:external-track": "node scripts/external-track-smoke.mjs",
+    "test:game-dialog": "node scripts/game-dialog-smoke.mjs",
+    "test": "npm run test:stage && npm run test:subtitles && npm run test:spectrum && npm run test:environment && npm run test:weather && npm run test:night-lighting && npm run test:lead-boarder && npm run test:menu-audio && npm run test:volume-settings && npm run test:run-mode && npm run test:random-profile && npm run test:external-track && npm run test:game-dialog"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "0.20.0",
+    "music-metadata": "11.15.0",
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "vite": "8.2.2"
+  }
+}
