@@ -24,7 +24,8 @@
     "test:random-profile": "node scripts/random-profile-smoke.mjs",
     "test:external-track": "node scripts/external-track-smoke.mjs",
     "test:game-dialog": "node scripts/game-dialog-smoke.mjs",
-    "test": "npm run test:stage && npm run test:subtitles && npm run test:spectrum && npm run test:environment && npm run test:weather && npm run test:night-lighting && npm run test:lead-boarder && npm run test:menu-audio && npm run test:volume-settings && npm run test:run-mode && npm run test:random-profile && npm run test:external-track && npm run test:game-dialog"
+    "test:touch-controls": "node scripts/touch-controls-smoke.mjs",
+    "test": "npm run test:stage && npm run test:subtitles && npm run test:spectrum && npm run test:environment && npm run test:weather && npm run test:night-lighting && npm run test:lead-boarder && npm run test:menu-audio && npm run test:volume-settings && npm run test:run-mode && npm run test:random-profile && npm run test:external-track && npm run test:game-dialog && npm run test:touch-controls"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.20.0",

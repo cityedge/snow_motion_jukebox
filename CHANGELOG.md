@@ -6,6 +6,7 @@ All notable public releases of Snow / Motion are documented here.
 
 - Improved lead snowboarder flights around closely spaced terrain features so they land naturally instead of dropping vertically.
 - Added restrained midday ground-side ambient fill so trees and rocks retain colour and form without making snow glare.
+- Added minimal touch controls: the top 20% of the game screen toggles pause, while the lower halves steer left or right while held.
 
 ## 1.0.0 — 2026-09-01
 

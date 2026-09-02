@@ -10,6 +10,7 @@
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: #9fc7dc; }
 canvas { display: block; width: 100%; height: 100%; }
+.game-canvas { touch-action: none; }
 
 .main-menu {
   --menu-background: none;

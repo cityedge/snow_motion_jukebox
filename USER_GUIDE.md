@@ -1,4 +1,4 @@
-# Snow / Motion v1.0.0 ユーザーガイド
+# Snow / Motion v1.1.0 ユーザーガイド
 
 Snow / Motion — White Line, Warm Heartは、音楽とともに生成される雪山を滑るブラウザ向け3Dスノーボード・ジュークボックスゲームです。
 
@@ -8,7 +8,7 @@ This is a browser-based 3D snowboard jukebox game with eight bundled songs, gene
 
 - デスクトップ版の最新Google ChromeまたはMicrosoft Edge
 - WebGL 2とWeb Audio APIが利用できるPC
-- キーボード操作を推奨
+- キーボード操作を推奨（タッチ操作にも対応）
 - GitHub PagesなどのHTTPSサイト、またはローカル静的HTTPサーバー
 
 `index.html`の直接起動（`file://`）では、ES Modules、音源、テクスチャの読み込みがブラウザに拒否される場合があります。
@@ -21,7 +21,7 @@ This is a browser-based 3D snowboard jukebox game with eight bundled songs, gene
 4. **この曲で滑る** または **ランダムステージで滑る** を選びます。
 5. 必要な場合はメインメニュー左下で音量を調整します。
 
-メニュー、ポーズ画面、クリア画面はマウスのほか、カーソルキーとEnterでも操作できます。
+メニュー、ポーズ画面、クリア画面はマウス／タップのほか、カーソルキーとEnterでも操作できます。
 
 ## 3. ゲームモード
 
@@ -64,6 +64,10 @@ my-song.srt
 | `L` | 日本語／英語切り替え |
 
 通常モードの`N`は、曲固有の演出を維持した別コースを生成します。ランダムステージでは、ランダム設定を含む新しいコースへ切り替わります。
+
+### タッチ操作
+
+ゲーム画面の上部20%をタップすると、`Esc`と同様にポーズ／再開します。残りの領域では、左半分を押している間は左カーブ、右半分を押している間は右カーブです。メニュー・ポーズ画面・クリア画面のボタンは直接タップできます。
 
 ### シナリオ指定ランダム（隠し操作）
 

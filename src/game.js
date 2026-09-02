@@ -18,6 +18,7 @@ import { StageDebugPanel } from './debug-panel.js';
 import { createRandomStageSeed, STAGE_MODE } from './run-mode.js';
 import { randomScenarioIdForShortcut } from './random-profile.js';
 import { readMasterVolume } from './volume-settings.js';
+import { touchControlAt } from './touch-controls.js';
 
 const FIXED_DT = 1 / 60;
 const CAMERA_TIME_SCALE = 1.20;
@@ -107,6 +108,7 @@ export class Game {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.autoClear = false;
+    this.renderer.domElement.classList.add('game-canvas');
     this.root.appendChild(this.renderer.domElement);
 
     this.input = { left: false, right: false, brake: false };
@@ -114,6 +116,7 @@ export class Game {
     this.accumulator = 0;
     this.language = 'ja';
     this.runStarted = false;
+    this.startingRun = false;
     this.paused = false;
     this.completionMessageReady = true;
     this.musicStartError = false;
@@ -125,6 +128,7 @@ export class Game {
     this.fpsWorkElapsedMs = 0;
     this.fpsValue = 0;
     this.frameTimeValue = 0;
+    this.touchSteerPointerId = null;
 
     this.buildWorld();
     this.player = new Player(this.scene, this.physics);
@@ -340,11 +344,73 @@ export class Game {
     window.addEventListener('keyup', (e) => setKey(e, false), { passive: false });
     window.addEventListener('blur', () => {
       this.input.left = this.input.right = this.input.brake = false;
+      this.touchSteerPointerId = null;
     });
     window.addEventListener('resize', () => this.resize());
-    window.addEventListener('pointerdown', () => {
+    window.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'touch' && event.target === this.renderer.domElement) return;
       if (!this.runStarted) this.startRun();
     }, { passive: true });
+    const clearTouchSteering = (pointerId) => {
+      if (pointerId !== this.touchSteerPointerId) return;
+      this.input.left = false;
+      this.input.right = false;
+      this.touchSteerPointerId = null;
+    };
+    const updateTouchSteering = (event) => {
+      const control = touchControlAt(
+        event.clientX,
+        event.clientY,
+        this.renderer.domElement.getBoundingClientRect()
+      );
+      if (control === 'left') {
+        this.input.left = true;
+        this.input.right = false;
+      } else if (control === 'right') {
+        this.input.left = false;
+        this.input.right = true;
+      } else {
+        clearTouchSteering(event.pointerId);
+      }
+      return control;
+    };
+    this.renderer.domElement.addEventListener('pointerdown', (event) => {
+      if (event.pointerType !== 'touch') return;
+      event.preventDefault();
+      const control = touchControlAt(
+        event.clientX,
+        event.clientY,
+        this.renderer.domElement.getBoundingClientRect()
+      );
+      if (control === 'pause') {
+        clearTouchSteering(this.touchSteerPointerId);
+        this.togglePause();
+        return;
+      }
+      if (!control || this.paused || this.player.finished) return;
+      this.touchSteerPointerId = event.pointerId;
+      this.renderer.domElement.setPointerCapture(event.pointerId);
+      updateTouchSteering(event);
+      if (!this.runStarted) {
+        this.startRun().then(() => {
+          if (this.touchSteerPointerId === event.pointerId && !this.paused) {
+            updateTouchSteering(event);
+          }
+        });
+      }
+    }, { passive: false });
+    this.renderer.domElement.addEventListener('pointermove', (event) => {
+      if (event.pointerType !== 'touch' || event.pointerId !== this.touchSteerPointerId) return;
+      event.preventDefault();
+      updateTouchSteering(event);
+    }, { passive: false });
+    const endTouchSteering = (event) => {
+      if (event.pointerType !== 'touch') return;
+      clearTouchSteering(event.pointerId);
+    };
+    this.renderer.domElement.addEventListener('pointerup', endTouchSteering);
+    this.renderer.domElement.addEventListener('pointercancel', endTouchSteering);
+    this.renderer.domElement.addEventListener('lostpointercapture', endTouchSteering);
     this.languageButtonEl.addEventListener('pointerdown', event => event.stopPropagation());
     this.languageButtonEl.addEventListener('click', () => this.toggleLanguage());
   }
@@ -411,22 +477,27 @@ export class Game {
   }
 
   async startRun() {
-    if (this.runStarted) return;
-    await this.renderReady;
-    this.runStarted = true;
-    this.paused = false;
-    this.musicStartError = false;
-    this.prepareRunStart();
-    this.audio.activate();
-    this.connectSpectrum();
-    this.audio.setMusicActive(true);
+    if (this.runStarted || this.startingRun) return;
+    this.startingRun = true;
     try {
-      await this.jukebox.playFromStart();
-    } catch (error) {
-      this.runStarted = false;
-      this.musicStartError = true;
-      this.audio.setMusicActive(false);
-      this.handleMusicError(error);
+      await this.renderReady;
+      this.runStarted = true;
+      this.paused = false;
+      this.musicStartError = false;
+      this.prepareRunStart();
+      this.audio.activate();
+      this.connectSpectrum();
+      this.audio.setMusicActive(true);
+      try {
+        await this.jukebox.playFromStart();
+      } catch (error) {
+        this.runStarted = false;
+        this.musicStartError = true;
+        this.audio.setMusicActive(false);
+        this.handleMusicError(error);
+      }
+    } finally {
+      this.startingRun = false;
     }
   }
 
