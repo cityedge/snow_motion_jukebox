@@ -5,6 +5,7 @@ import {
   ACTIVE_TRACK,
   DAWN_ENVIRONMENT_PROFILE,
   DEFAULT_TRACK,
+  MIDDAY_ENVIRONMENT_PROFILE,
   NIGHT_ENVIRONMENT_PROFILE,
   SUNSET_ENVIRONMENT_PROFILE,
   TRACKS,
@@ -49,6 +50,20 @@ assert.ok(sunsetAt20.sunOpacity > 0);
 assert.equal(sunsetAt30.sunOpacity, 0);
 assert.ok(Math.abs(sunsetAt30.sunElevationDeg + 4.5) < 1e-9);
 
+function averageColorChannel(color) {
+  return (((color >> 16) & 0xff) + ((color >> 8) & 0xff) + (color & 0xff)) / 3;
+}
+
+const midday = samples(MIDDAY_ENVIRONMENT_PROFILE);
+assert.ok(
+  averageColorChannel(midday.start.hemisphereGroundColor) >= 160,
+  'midday ground fill must keep vertical scenery from collapsing into silhouette'
+);
+assert.ok(
+  averageColorChannel(midday.end.hemisphereGroundColor) >= 160,
+  'midday ground fill must remain readable through the whole track'
+);
+
 const night = samples(NIGHT_ENVIRONMENT_PROFILE);
 assert.equal(TRACKS.length, 8);
 assert.equal(DEFAULT_TRACK, TRACKS[0]);
@@ -73,4 +88,4 @@ for (const mountain of DISTANT_MOUNTAIN_CONFIGS) {
   }
 }
 
-console.log('Environment smoke test passed for dawn, sunset, and night profiles.');
+console.log('Environment smoke test passed for dawn, midday, sunset, and night profiles.');

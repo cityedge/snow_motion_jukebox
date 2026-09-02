@@ -1,6 +1,6 @@
 {
   "name": "snow-motion",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A browser-based 3D snowboard jukebox game.",
   "license": "MIT",
   "private": true,

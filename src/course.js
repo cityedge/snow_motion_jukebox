@@ -239,17 +239,34 @@ export function terrainFeatureRiseAt(s, d = 0) {
   return rise;
 }
 
-export function nearestTerrainFeatureAt(s) {
-  let nearest = null;
+export function terrainFeatureContextAt(s) {
+  let nearestIndex = -1;
   let best = Infinity;
-  for (const feature of TERRAIN_FEATURES) {
+  for (let index = 0; index < TERRAIN_FEATURES.length; index += 1) {
+    const feature = TERRAIN_FEATURES[index];
     const distance = Math.abs(s - feature.centerS);
     if (distance < best) {
       best = distance;
-      nearest = feature;
+      nearestIndex = index;
     }
   }
-  return nearest ? { ...nearest, distance: best } : null;
+  if (nearestIndex < 0) return null;
+
+  const feature = TERRAIN_FEATURES[nearestIndex];
+  const next = TERRAIN_FEATURES[nearestIndex + 1] ?? null;
+  return {
+    feature: { ...feature, distance: best },
+    // nearestTerrainFeatureAt changes ownership at the midpoint between two
+    // feature centres. Lead-rider flights use this boundary to finish safely
+    // before a following feature can replace the current one.
+    nextSwitchS: next
+      ? (feature.centerS + next.centerS) * 0.5
+      : Infinity,
+  };
+}
+
+export function nearestTerrainFeatureAt(s) {
+  return terrainFeatureContextAt(s)?.feature ?? null;
 }
 
 export function heightAtCourse(s, d) {

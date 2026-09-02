@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { COURSE } from '../src/course.js';
 import {
   sampleLeadBoarderDeparture,
   sampleLeadBoarderJump,
@@ -46,11 +47,12 @@ for (let s = 0; s < 5000; s += 0.5) {
   airborneSamples += 1;
   highestArc = Math.max(highestArc, jump.height);
   const expectedLength = jump.kind === 'jump' ? 72.8 : 49.4;
-  const expectedPeak = jump.kind === 'jump' ? 2.8 : 1.92;
-  assert.ok(Math.abs(jump.flightLength - expectedLength) < 1e-9);
+  const nominalPeak = jump.kind === 'jump' ? 2.8 : 1.92;
+  const expectedPeak = nominalPeak * (jump.flightLength / expectedLength);
+  assert.ok(jump.flightLength <= expectedLength);
   assert.ok(Math.abs(jump.peakHeight - expectedPeak) < 1e-9);
   assert.ok(Math.abs(
-    jump.landingS - jump.takeoffS - expectedLength
+    jump.landingS - jump.takeoffS - jump.flightLength
   ) < 1e-9, 'flight must cover the configured distance');
   assert.ok(jump.height >= 0, 'flight height must not pass below the snow');
 }
@@ -71,5 +73,21 @@ for (let index = 1; index <= apexIndex; index += 1) {
 for (let index = apexIndex + 1; index < arcHeights.length; index += 1) {
   assert.ok(arcHeights[index] <= arcHeights[index - 1], 'flight may only descend after its apex');
 }
+
+// A shortened flight must complete close to the snow before nearest-feature
+// ownership changes. This guards against the former multi-metre vertical snap.
+let verifiedShortenedFlight = false;
+for (let s = 0; s < COURSE.length; s += 0.5) {
+  const jump = sampleLeadBoarderJump(s);
+  if (!jump.airborne || !jump.shortened) continue;
+  const justBeforeLanding = sampleLeadBoarderJump(jump.landingS - 0.01);
+  const justAfterLanding = sampleLeadBoarderJump(jump.landingS + 0.01);
+  assert.equal(justBeforeLanding.airborne, true);
+  assert.ok(justBeforeLanding.height < 0.01, 'shortened flight must descend to the snow');
+  assert.equal(justAfterLanding.airborne, false, 'shortened flight must finish before hand-off');
+  verifiedShortenedFlight = true;
+  break;
+}
+assert.equal(verifiedShortenedFlight, true, 'close features must exercise shortened lead-rider flight');
 
 console.log('lead boarder smoke test passed');

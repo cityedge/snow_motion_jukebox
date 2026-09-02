@@ -124,6 +124,14 @@ const SCENARIOS = Object.freeze([
     },
   }),
   Object.freeze({
+    id: 'clear-sunset', ja: '晴れた夕暮れ', en: 'CLEAR SUNSET',
+    environment: SUNSET_ENVIRONMENT_PROFILE, priorTrackChance: 0.58, leadChance: 0.30,
+    weather: {
+      start: { snowfall: [0, 0.14], nearMist: [0.02, 0.16], wind: [0.02, 0.18] },
+      end: { snowfall: [0, 0.24], nearMist: [0.03, 0.22], wind: [0.04, 0.28] },
+    },
+  }),
+  Object.freeze({
     id: 'sunset-storm', ja: '夕暮れの荒天', en: 'SUNSET STORM',
     environment: SUNSET_ENVIRONMENT_PROFILE, priorTrackChance: 0.62, leadChance: 0.22,
     snowfallCurves: ['linear', 'exponential'],
@@ -142,6 +150,18 @@ const SCENARIOS = Object.freeze([
     },
   }),
   Object.freeze({
+    id: 'night-storm', ja: '荒天のナイター', en: 'STORMY NIGHT RESORT',
+    environment: NIGHT_ENVIRONMENT_PROFILE, priorTrackChance: 0.86, leadChance: 0.30,
+    nightLights: true,
+    snowfallCurves: ['linear', 'exponential'],
+    weather: {
+      // Strong enough to read as bad weather under the lamps, while staying
+      // below the lodge-squall whiteout range so the lit route remains legible.
+      start: { snowfall: [0.46, 0.82], nearMist: [0.22, 0.46], wind: [0.24, 0.50] },
+      end: { snowfall: [0.82, 1.42], nearMist: [0.42, 0.72], wind: [0.48, 0.82] },
+    },
+  }),
+  Object.freeze({
     id: 'quiet-night', ja: '静かな夜の山', en: 'QUIET NIGHT MOUNTAIN',
     environment: QUIET_NIGHT_ENVIRONMENT_PROFILE, priorTrackChance: 0.38, leadChance: 0.26,
     weather: {
@@ -151,9 +171,37 @@ const SCENARIOS = Object.freeze([
   }),
 ]);
 
-export function createRandomVisualProfile(seedInput) {
+export const RANDOM_SCENARIO_SHORTCUTS = Object.freeze([
+  'clear-dawn',
+  'clear-morning',
+  'bright-midday',
+  'cloudy-afternoon',
+  'lodge-squall',
+  'clear-sunset',
+  'sunset-storm',
+  'night-resort',
+  'night-storm',
+  'quiet-night',
+]);
+
+export function randomScenarioIdForShortcut(value) {
+  const shortcut = String(value ?? '').trim();
+  return /^\d$/.test(shortcut)
+    ? RANDOM_SCENARIO_SHORTCUTS[Number(shortcut)] ?? null
+    : null;
+}
+
+export function normalizeRandomScenarioId(value) {
+  const requested = String(value ?? '').trim();
+  return SCENARIOS.some(scenario => scenario.id === requested) ? requested : null;
+}
+
+export function createRandomVisualProfile(seedInput, scenarioId = null) {
   const rand = seededRandom(`${seedInput}:visual-profile`);
-  const scenario = SCENARIOS[Math.floor(rand() * SCENARIOS.length)];
+  const normalizedScenarioId = normalizeRandomScenarioId(scenarioId);
+  const scenario = normalizedScenarioId
+    ? SCENARIOS.find(candidate => candidate.id === normalizedScenarioId)
+    : SCENARIOS[Math.floor(rand() * SCENARIOS.length)];
   const priorTracks = rand() < scenario.priorTrackChance;
   return Object.freeze({
     environment: scenario.environment,
@@ -169,11 +217,11 @@ export function createRandomVisualProfile(seedInput) {
   });
 }
 
-export function createRandomStageTrack(track, seedInput) {
+export function createRandomStageTrack(track, seedInput, scenarioId = null) {
   return Object.freeze({
     ...track,
     seed: String(seedInput),
-    visualProfile: createRandomVisualProfile(seedInput),
+    visualProfile: createRandomVisualProfile(seedInput, scenarioId),
   });
 }
 

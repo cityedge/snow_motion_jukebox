@@ -1,4 +1,4 @@
-# Snow / Motion v1.0.0 公開前レビュー
+# Snow / Motion v1.1.0 公開前レビュー
 
 確認日: 2026-09-02
 
@@ -11,6 +11,8 @@
 - 雪、FOG、風、ナイター、トンネル、先行者
 - 雪面、木、岩、トンネルのテクスチャ
 - マスター音量とFPS表示
+- 近接ジャンプでの先行者軌道補正
+- 昼の環境光による樹木・岩の暗部補正
 - GitHub Pages向け静的ビルド
 
 ## 自動確認
@@ -44,7 +46,7 @@ git diff --check  エラーなし
 
 ## 配布物
 
-正式な配布物は`dist/snow-motion-v1.0.0.zip`の1つです。通常どおり展開すると`snow-motion-v1.0.0/`フォルダが1つ作られ、その中に以下を収録します。
+正式な配布物は`dist/snow-motion-v1.1.0.zip`の1つです。通常どおり展開すると`snow-motion-v1.1.0/`フォルダが1つ作られ、その中に以下を収録します。
 
 - `src/`、ルートの`index.html`、`vite.config.js`
 - `package.json`、`package-lock.json`

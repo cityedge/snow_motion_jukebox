@@ -152,7 +152,10 @@ export const MIDDAY_ENVIRONMENT_PROFILE = environmentProfile({
     skyZenithColor: 0x72a6c0, skyHorizonColor: 0xc1e0e9,
     horizonGlowColor: 0xe4f4f7, horizonGlowStrength: 0,
     fogColor: 0xc5e1e8, fogDensityScale: 0.76, snowColor: 0xf0fafb,
-    hemisphereSkyColor: 0xebfbff, hemisphereGroundColor: 0x718b96,
+    // Midday also drives overcast/storm scenarios. Lift only the ground-side
+    // hemisphere fill so vertical tree cards and shaded rock faces retain
+    // colour without making the snow or direct highlights glare more strongly.
+    hemisphereSkyColor: 0xebfbff, hemisphereGroundColor: 0x9aadb5,
     hemisphereIntensity: 2.32, sunLightColor: 0xffffff, sunLightIntensity: 2.48,
     sunDiscColor: 0xfff4d6, sunHaloColor: 0xffd39c, sunElevationDeg: 28, sunOpacity: 0,
   },
@@ -160,7 +163,7 @@ export const MIDDAY_ENVIRONMENT_PROFILE = environmentProfile({
     skyZenithColor: 0x78a9c0, skyHorizonColor: 0xc8e2e8,
     horizonGlowColor: 0xe4f4f7, horizonGlowStrength: 0,
     fogColor: 0xc8e0e6, fogDensityScale: 0.80, snowColor: 0xeff9fa,
-    hemisphereSkyColor: 0xeaf8fb, hemisphereGroundColor: 0x728a94,
+    hemisphereSkyColor: 0xeaf8fb, hemisphereGroundColor: 0x96a9b1,
     hemisphereIntensity: 2.25, sunLightColor: 0xfffbf2, sunLightIntensity: 2.35,
     sunDiscColor: 0xfff4d6, sunHaloColor: 0xffd39c, sunElevationDeg: 22, sunOpacity: 0,
   },

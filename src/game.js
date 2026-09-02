@@ -15,7 +15,8 @@ import { fogLayersAt, LocalWeather, sampleWeather } from './weather.js';
 import { NightLighting } from './night-lighting.js';
 import { LeadBoarder } from './lead-boarder.js';
 import { StageDebugPanel } from './debug-panel.js';
-import { createRandomStageSeed } from './run-mode.js';
+import { createRandomStageSeed, STAGE_MODE } from './run-mode.js';
+import { randomScenarioIdForShortcut } from './random-profile.js';
 import { readMasterVolume } from './volume-settings.js';
 
 const FIXED_DT = 1 / 60;
@@ -220,7 +221,7 @@ export class Game {
     const hud = document.createElement('div');
     hud.className = 'hud';
     hud.innerHTML = `
-      <div class="brand">SNOW / MOTION · JUKEBOX v1.0.0</div>
+      <div class="brand">SNOW / MOTION · JUKEBOX v1.1.0</div>
       <div class="help"></div>
       <div class="stage-info">SEED ${ACTIVE_STAGE.seedLabel} · ${ACTIVE_STAGE.name} · FOG ${Math.round((ACTIVE_STAGE.personality.atmosphere ?? 0) * 100)}</div>
       <div class="fps-readout disabled" aria-hidden="true">FPS -- · CPU -- MS · MAX --</div>
@@ -288,7 +289,7 @@ export class Game {
   bindEvents() {
     const setKey = (event, down) => {
       const key = event.key.toLowerCase();
-      if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'enter', 'a', 'd', 's', 'r', 'n', 'f', 'p', 'escape'].includes(key)) {
+      if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'enter', 'a', 'd', 's', 'r', 'n', 'f', 'p', 'escape'].includes(key) || /^\d$/.test(key)) {
         event.preventDefault();
       }
       if (this.handleDialogKey(event, down)) return;
@@ -324,6 +325,10 @@ export class Game {
       if (key === 'arrowdown' || key === 's') this.input.brake = down;
       if (down && key === 'n') {
         if (!ACTIVE_TRACK.external) this.loadNewSeed();
+        return;
+      }
+      if (down && /^\d$/.test(key)) {
+        if (!event.repeat && !ACTIVE_TRACK.external) this.loadScenarioSeed(key);
         return;
       }
       if (down && !this.runStarted) this.startRun();
@@ -388,6 +393,20 @@ export class Game {
     const params = new URLSearchParams(window.location.search);
     params.set('seed', createRandomStageSeed(ACTIVE_TRACK.id));
     params.set('play', '1');
+    window.location.search = params.toString();
+  }
+
+  loadScenarioSeed(shortcut) {
+    // Hidden QA/power-user command: preserve the selected song, force only the
+    // visual scenario, and regenerate every other random-stage decision.
+    if (ACTIVE_TRACK.external) return;
+    const scenarioId = randomScenarioIdForShortcut(shortcut);
+    if (!scenarioId) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('seed', createRandomStageSeed(ACTIVE_TRACK.id));
+    params.set('play', '1');
+    params.set('mode', STAGE_MODE.RANDOM);
+    params.set('scenario', scenarioId);
     window.location.search = params.toString();
   }
 

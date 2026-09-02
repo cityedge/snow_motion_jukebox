@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import {
   COURSE,
-  nearestTerrainFeatureAt,
   normalAtCourse,
   pointAt,
+  terrainFeatureContextAt,
   wallInfoAt,
 } from './course.js';
 
@@ -93,8 +93,9 @@ export function sampleLeadBoarderDeparture(startS, elapsed, options = {}) {
  * language without adding a second physics body to the scene.
  */
 export function sampleLeadBoarderJump(s) {
-  const feature = nearestTerrainFeatureAt(s);
-  if (!feature) return { airborne: false, height: 0 };
+  const context = terrainFeatureContextAt(s);
+  if (!context) return { airborne: false, height: 0 };
+  const { feature } = context;
 
   // Match the player's authored trigger windows: rollers release just before
   // the crown, while jump ramps release on their positive-slope lip.
@@ -102,18 +103,34 @@ export function sampleLeadBoarderJump(s) {
     feature.kind === 'jump' ? 0.26 : -0.08
   );
   // User-tuned from the previous prototype: 1.3x farther while staying low.
-  const flightLength = feature.kind === 'jump' ? 72.8 : 49.4;
+  const nominalFlightLength = feature.kind === 'jump' ? 72.8 : 49.4;
+  // A nearby following feature can become the nearest feature while this arc
+  // is still airborne. End before that hand-off so pointAtLeadRoute never
+  // snaps from a positive jump height directly back onto the snow.
+  const handoffMargin = 3;
+  const flightLength = Math.min(
+    nominalFlightLength,
+    context.nextSwitchS - handoffMargin - takeoffS,
+  );
+  // Extremely tight layouts do not have enough room for a readable complete
+  // arc. Treat those as ordinary terrain instead of creating a sharp hop.
+  if (flightLength < 10) return { airborne: false, height: 0 };
   const landingS = takeoffS + flightLength;
   if (s < takeoffS || s > landingS) return { airborne: false, height: 0 };
 
   const u = THREE.MathUtils.clamp((s - takeoffS) / flightLength, 0, 1);
   // 0.4x the previous peak heights.
-  const peakHeight = feature.kind === 'jump' ? 2.8 : 1.92;
+  const nominalPeakHeight = feature.kind === 'jump' ? 2.8 : 1.92;
+  // Scale height with distance so a shortened arc retains the accepted
+  // takeoff/descent angle instead of becoming a steep miniature jump.
+  const peakHeight = nominalPeakHeight * (flightLength / nominalFlightLength);
   return {
     airborne: true,
     kind: feature.kind,
     flightLength,
+    nominalFlightLength,
     peakHeight,
+    shortened: flightLength < nominalFlightLength,
     // A single ballistic parabola: zero at takeoff/landing and exactly one
     // apex. It is deliberately independent of terrain height while airborne.
     height: 4 * u * (1 - u) * peakHeight,
