@@ -458,6 +458,10 @@ export function createTerrain(maxAnisotropy = 1) {
     roughnessMap: roughness,
     roughness: 0.96,
     metalness: 0,
+    // Tight bends can expose the reverse side of a future snow bank. Trees are
+    // already double-sided, so leaving the terrain front-sided makes the bank
+    // vanish while its forest remains suspended against the sky.
+    side: THREE.DoubleSide,
     // The old Lambert surface tolerated faceted normals, but PBR specular light
     // turns the same triangles into repeated vertical/diamond bands on cliffs.
     flatShading: false,

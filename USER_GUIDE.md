@@ -1,4 +1,4 @@
-# Snow / Motion v1.1.0 ユーザーガイド
+# Snow / Motion v1.1.1 ユーザーガイド
 
 Snow / Motion — White Line, Warm Heartは、音楽とともに生成される雪山を滑るブラウザ向け3Dスノーボード・ジュークボックスゲームです。
 

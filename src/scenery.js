@@ -133,6 +133,15 @@ function createRockMaterials(maxAnisotropy = 1) {
   };
 }
 
+function vistaEdgeLateralAt(s, side) {
+  const wall = wallInfoAt(s);
+  const vista = vistaAmountAt(s);
+  const shoulder = side < 0 ? wall.leftShoulder : wall.rightShoulder;
+  const inset = THREE.MathUtils.smoothstep(vista, 0.08, 0.78);
+  const treeLineEdge = Math.min(COURSE.renderHalfWidth - 1, shoulder + 11.5);
+  return THREE.MathUtils.lerp(COURSE.renderHalfWidth, treeLineEdge, inset);
+}
+
 function createTrees({ groomedCourse = false, maxAnisotropy = 1 } = {}) {
   const rand = seededRandom(ACTIVE_STAGE.seeds.trees);
   const variantRand = seededRandom(ACTIVE_STAGE.seeds.trees ^ 0x5f3759df);
@@ -210,6 +219,14 @@ function createTrees({ groomedCourse = false, maxAnisotropy = 1 } = {}) {
 
     // Never place near-world objects outside the rendered terrain ribbon.
     lateral = Math.min(COURSE.renderHalfWidth - 4, lateral);
+    const vistaEdge = vistaEdgeLateralAt(s, side);
+    if (lateral > vistaEdge - 1.2) {
+      // During an overlook, keep the navigation trees immediately inside the
+      // visible cliff edge instead of scattering cards beyond their backing
+      // terrain. The deterministic inset avoids a ruler-straight row.
+      const stagger = 1.2 + Math.abs(Math.sin(s * 1.731 + i * 0.618)) * 3.2;
+      lateral = Math.max(shoulder + 0.6, vistaEdge - stagger);
+    }
     const d = side * lateral;
     const densityScale = THREE.MathUtils.lerp(0.85, 1.12, wallStrength);
     const treeScale = scale * densityScale;
@@ -316,6 +333,61 @@ function createRocks({ groomedCourse = false, material } = {}) {
   return { mesh, positions };
 }
 
+function createVistaEdgeCliffs(material) {
+  const group = new THREE.Group();
+  const step = 4;
+  const sections = Math.ceil(COURSE.length / step) + 1;
+
+  for (const side of [-1, 1]) {
+    const vertices = [];
+    const uvs = [];
+    const indices = [];
+
+    for (let i = 0; i < sections - 1; i++) {
+      const s0 = Math.min(COURSE.length, i * step);
+      const s1 = Math.min(COURSE.length, (i + 1) * step);
+      const vista0 = THREE.MathUtils.smoothstep(vistaAmountAt(s0), 0.03, 0.82);
+      const vista1 = THREE.MathUtils.smoothstep(vistaAmountAt(s1), 0.03, 0.82);
+      if (Math.max(vista0, vista1) <= 0.001) continue;
+
+      const edge0 = vistaEdgeLateralAt(s0, side);
+      const edge1 = vistaEdgeLateralAt(s1, side);
+      const top0 = pointAt(s0, side * edge0, new THREE.Vector3());
+      const top1 = pointAt(s1, side * edge1, new THREE.Vector3());
+      // The skirt is only a visual boundary outside broad overlooks. Its top
+      // follows the navigation tree line and drops far enough that a bend
+      // cannot reveal sky beneath those trees.
+      const depth0 = Math.max(0.08, vista0 * 105);
+      const depth1 = Math.max(0.08, vista1 * 105);
+      const base = vertices.length / 3;
+      vertices.push(
+        top0.x, top0.y, top0.z,
+        top1.x, top1.y, top1.z,
+        top0.x, top0.y - depth0, top0.z,
+        top1.x, top1.y - depth1, top1.z,
+      );
+      uvs.push(
+        s0 / 7, 0,
+        s1 / 7, 0,
+        s0 / 7, depth0 / 7,
+        s1 / 7, depth1 / 7,
+      );
+      indices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+    }
+
+    if (vertices.length === 0) continue;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.frustumCulled = true;
+    group.add(mesh);
+  }
+
+  return group;
+}
 
 function createTunnels({ snowMaterial, rockMaterial, interiorRockMaterial }) {
   const group = new THREE.Group();
@@ -687,6 +759,12 @@ export class Scenery {
     this.rockObstacles = rocks.positions;
     this.obstacles = [...this.treeObstacles, ...this.rockObstacles]
       .sort((a, b) => a.s - b.s);
+
+    // Broad overlooks keep their perimeter trees as a navigation cue. A rock
+    // skirt below the outer snow edge gives those trees visible land to stand
+    // on when a curved section is viewed from the inside of the bend.
+    this.vistaEdgeCliffs = createVistaEdgeCliffs(this.rockMaterials.exterior);
+    this.group.add(this.vistaEdgeCliffs);
 
     this.tunnelSnowMaterial = new THREE.MeshLambertMaterial({
       color: 0xeaf4f7,

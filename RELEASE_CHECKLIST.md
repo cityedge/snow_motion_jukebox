@@ -1,4 +1,4 @@
-# v1.1.0 Release Checklist
+# v1.1.1 Release Checklist
 
 ## Repository contents
 
@@ -40,12 +40,12 @@ npm run package:release
 The one canonical release archive is written to:
 
 ```text
-dist/snow-motion-v1.1.0.zip
+dist/snow-motion-v1.1.1.zip
 ```
 
-Extracting the archive creates one `snow-motion-v1.1.0/` folder containing the reproducible repository. It does not scatter repository files directly into the selected extraction directory. The folder includes source files, the lockfile, smoke tests, runtime assets actually used by the game, complete documentation, and the committed `docs/` GitHub Pages build.
+Extracting the archive creates one `snow-motion-v1.1.1/` folder containing the reproducible repository. It does not scatter repository files directly into the selected extraction directory. The folder includes source files, the lockfile, smoke tests, runtime assets actually used by the game, complete documentation, and the committed `docs/` GitHub Pages build.
 
-- [ ] The archive has exactly one top-level `snow-motion-v1.1.0/` folder.
+- [ ] The archive has exactly one top-level `snow-motion-v1.1.1/` folder.
 - [ ] That folder contains `README.md`, `LICENSE`, `package.json`, `package-lock.json`, `src/`, `scripts/`, and `docs/index.html`.
 - [ ] The archive can run `npm ci`, `npm test`, and `npm run build` after extraction.
 - [ ] The archive does not contain `.git/`, `node_modules/`, `build/`, `dist/`, `tests/tmp/`, obsolete menu BGM, unused cover art, or source texture ZIP files.

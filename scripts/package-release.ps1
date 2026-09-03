@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $buildRoot = Join-Path $projectRoot 'build'
 $distRoot = Join-Path $projectRoot 'dist'
-$packageName = 'snow-motion-v1.1.0'
+$packageName = 'snow-motion-v1.1.1'
 $stageRoot = Join-Path $buildRoot 'repository-package'
 $packageRoot = Join-Path $stageRoot $packageName
 $archivePath = Join-Path $distRoot "$packageName.zip"
@@ -123,21 +123,9 @@ foreach ($file in ($musicFiles + $textureFiles)) {
     Copy-RequiredFile -RelativePath $file
 }
 
-$obsoleteArchives = @(
-    'snow-motion-v1.0.0.zip',
-    'snow-motion-v1.0.0-github-pages.zip',
-    'snow-motion-v1.0.0-source.zip',
-    'snow-motion-v1.1.0.zip',
-    'snow-motion-v1.1.0-github-pages.zip',
-    'snow-motion-v1.1.0-source.zip'
-)
-foreach ($archiveName in $obsoleteArchives) {
-    $candidate = Join-Path $distRoot $archiveName
-    Assert-PathUnderRoot -Path $candidate -Root $distRoot
-    if (Test-Path -LiteralPath $candidate) {
-        Remove-Item -LiteralPath $candidate -Force
-    }
-}
+# dist/ is a local release archive. Never clean up older versions here.
+# tar.exe replaces only the archive for the version currently being built.
+Assert-PathUnderRoot -Path $archivePath -Root $distRoot
 
 Push-Location $stageRoot
 try {

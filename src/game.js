@@ -225,7 +225,7 @@ export class Game {
     const hud = document.createElement('div');
     hud.className = 'hud';
     hud.innerHTML = `
-      <div class="brand">SNOW / MOTION · JUKEBOX v1.1.0</div>
+      <div class="brand">SNOW / MOTION · JUKEBOX v1.1.1</div>
       <div class="help"></div>
       <div class="stage-info">SEED ${ACTIVE_STAGE.seedLabel} · ${ACTIVE_STAGE.name} · FOG ${Math.round((ACTIVE_STAGE.personality.atmosphere ?? 0) * 100)}</div>
       <div class="fps-readout disabled" aria-hidden="true">FPS -- · CPU -- MS · MAX --</div>

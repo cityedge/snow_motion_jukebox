@@ -2,6 +2,11 @@
 
 All notable public releases of Snow / Motion are documented here.
 
+## 1.1.1 — 2026-09-03
+
+- Kept open-vista perimeter forests grounded by matching them to a visual cliff edge.
+- Rendered snow terrain from both sides so future banks remain visible around tight bends.
+
 ## 1.1.0 — 2026-09-02
 
 - Improved lead snowboarder flights around closely spaced terrain features so they land naturally instead of dropping vertically.
