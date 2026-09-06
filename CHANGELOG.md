@@ -2,6 +2,12 @@
 
 All notable public releases of Snow / Motion are documented here.
 
+## 1.2.0 — 2026-09-06
+
+- Rebuilt the distant mountains, forests, and sun as world-anchored 360-degree scenery with natural steering parallax.
+- Scaled the displayed ride distance to a realistic range and added collision count and longest collision-free distance to the completion screen.
+- Added clear blue daytime skies and bright neutral overcast, with snowfall and visible fog now producing distinct storm-darkening curves.
+
 ## 1.1.1 — 2026-09-03
 
 - Kept open-vista perimeter forests grounded by matching them to a visual cliff edge.

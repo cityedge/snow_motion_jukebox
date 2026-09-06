@@ -2,6 +2,11 @@ import { ACTIVE_TRACK } from './track-manifest.js';
 
 export const WORLD_TIME_SCALE = 1.75;
 export const MAX_RIDE_SPEED = 38;
+export const DISPLAY_DISTANCE_SCALE = 0.2;
+
+export function displayedDistance(meters) {
+  return Math.max(0, Math.floor((Number.isFinite(meters) ? meters : 0) * DISPLAY_DISTANCE_SCALE));
+}
 
 export const DEFAULT_RUN_DURATION_SECONDS = ACTIVE_TRACK.durationSeconds;
 export const DEFAULT_RUN_SEED = ACTIVE_TRACK.seed;

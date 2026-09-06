@@ -682,20 +682,22 @@ export function createSnowMarks({ showPriorTracks = true } = {}) {
 }
 
 export const DISTANT_MOUNTAIN_CONFIGS = Object.freeze([
-  // width extends the stage set; patternWidth preserves the accepted central
-  // ridge shapes instead of stretching them across the wider mesh.
-  Object.freeze({ z: 760, width: 1900, patternWidth: 1020, baseY: 18, amp: 58, color: 0xb9d1dc, phase: 2.3 }),
-  Object.freeze({ z: 980, width: 2400, patternWidth: 1260, baseY: 10, amp: 84, color: 0xa7c5d4, phase: 0.4 }),
-  Object.freeze({ z: 1240, width: 2900, patternWidth: 1500, baseY: 0, amp: 112, color: 0x8eafc1, phase: 1.7 }),
+  // The former front-facing strips used these same depths. Keeping them as
+  // ring radii preserves the established relationship with far-scene fog.
+  Object.freeze({ radius: 760, baseY: 18, amp: 58, color: 0xb9d1dc, phase: 2.3 }),
+  Object.freeze({ radius: 980, baseY: 10, amp: 84, color: 0xa7c5d4, phase: 0.4 }),
+  Object.freeze({ radius: 1240, baseY: 0, amp: 112, color: 0x8eafc1, phase: 1.7 }),
 ]);
 
-export function distantMountainRidgeAt(cfg, x) {
-  const t = x / cfg.patternWidth + 0.5;
+export function distantMountainRidgeAt(cfg, arcDistance) {
+  // Integer angular harmonics make the ridge exactly periodic at the back
+  // seam while retaining broad, medium and small mountain silhouettes.
+  const angle = arcDistance / cfg.radius;
   return cfg.baseY + cfg.amp * (
     0.46
-    + 0.25 * Math.sin(t * Math.PI * 5 + cfg.phase)
-    + 0.17 * Math.sin(t * Math.PI * 11 + cfg.phase * 0.7)
-    + 0.12 * Math.sin(t * Math.PI * 19 + 0.3)
+    + 0.25 * Math.sin(angle * 12 + cfg.phase)
+    + 0.17 * Math.sin(angle * 27 + cfg.phase * 0.7)
+    + 0.12 * Math.sin(angle * 47 + 0.3)
   );
 }
 
@@ -703,15 +705,18 @@ export function createDistantMountains() {
   const group = new THREE.Group();
 
   for (const cfg of DISTANT_MOUNTAIN_CONFIGS) {
-    const segments = Math.ceil(72 * cfg.width / cfg.patternWidth);
+    // Roughly four metres of arc per segment is still inexpensive at these
+    // distances and prevents the 360-degree silhouette from looking faceted.
+    const segments = Math.ceil(cfg.radius * Math.PI * 2 / 4.2);
     const verts = [];
     const indices = [];
     for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const x = (t - 0.5) * cfg.width;
-      const ridge = distantMountainRidgeAt(cfg, x);
-      verts.push(x, -42, cfg.z);
-      verts.push(x, ridge, cfg.z);
+      const angle = (i / segments) * Math.PI * 2;
+      const x = Math.sin(angle) * cfg.radius;
+      const z = Math.cos(angle) * cfg.radius;
+      const ridge = distantMountainRidgeAt(cfg, angle * cfg.radius);
+      verts.push(x, -42, z);
+      verts.push(x, ridge, z);
     }
     for (let i = 0; i < segments; i++) {
       const a = i * 2;

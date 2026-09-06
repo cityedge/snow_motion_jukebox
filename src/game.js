@@ -6,12 +6,17 @@ import { Scenery } from './scenery.js';
 import { PhysicsWorld } from './physics.js';
 import { RideAudio } from './audio.js';
 import { ACTIVE_STAGE, ACTIVE_STAGE_MODE, tunnelAmountAt } from './stage.js';
-import { WORLD_TIME_SCALE } from './run-config.js';
+import { displayedDistance, WORLD_TIME_SCALE } from './run-config.js';
 import { ACTIVE_TRACK, isFinalTrack } from './track-manifest.js';
 import { Jukebox } from './jukebox.js';
 import { SpectrumDisplay } from './spectrum.js';
-import { sampleEnvironment } from './environment.js';
-import { fogLayersAt, LocalWeather, sampleWeather } from './weather.js';
+import { clearSkyPresentationAt, sampleEnvironment } from './environment.js';
+import {
+  fogLayersAt,
+  LocalWeather,
+  nearMistPresentationAt,
+  sampleWeather,
+} from './weather.js';
 import { NightLighting } from './night-lighting.js';
 import { LeadBoarder } from './lead-boarder.js';
 import { StageDebugPanel } from './debug-panel.js';
@@ -34,7 +39,11 @@ const UI_TEXT = {
     startTitle: 'RIDE WITH MUSIC',
     startDetail: 'クリックまたはキー入力でスタート',
     completeTitle: '滑走終了',
-    completeDetail: distance => `滑走距離 ${distance} M`,
+    completeDetail: stats => [
+      `滑走距離 ${stats.distance} M`,
+      `衝突回数 ${stats.collisionCount} 回`,
+      `最長滑走距離 ${stats.longestDistance} M`,
+    ].join('\n'),
     pauseTitle: '一時停止',
     pauseDetail: '音楽と滑走を停止しています',
     resume: '滑走に戻る',
@@ -55,7 +64,11 @@ const UI_TEXT = {
     startTitle: 'RIDE WITH MUSIC',
     startDetail: 'PRESS ANY KEY OR CLICK TO START',
     completeTitle: 'RUN COMPLETE',
-    completeDetail: distance => `DISTANCE ${distance} M`,
+    completeDetail: stats => [
+      `DISTANCE ${stats.distance} M`,
+      `COLLISIONS ${stats.collisionCount}`,
+      `LONGEST CLEAN RUN ${stats.longestDistance} M`,
+    ].join('\n'),
     pauseTitle: 'PAUSED',
     pauseDetail: 'MUSIC AND RIDING ARE PAUSED',
     resume: 'RESUME RIDE',
@@ -153,7 +166,7 @@ export class Game {
     this.chaseCamera.reset();
     this.weather = new LocalWeather(this.scene, this.camera);
     this.weather.reset();
-    this.scenery.update(this.camera, this.player);
+    this.scenery.update(this.camera);
     this.nightLighting = new NightLighting(
       this.scene,
       ACTIVE_TRACK.visualProfile?.nightLighting
@@ -225,7 +238,7 @@ export class Game {
     const hud = document.createElement('div');
     hud.className = 'hud';
     hud.innerHTML = `
-      <div class="brand">SNOW / MOTION · JUKEBOX v1.1.1</div>
+      <div class="brand">SNOW / MOTION · JUKEBOX v1.2.0</div>
       <div class="help"></div>
       <div class="stage-info">SEED ${ACTIVE_STAGE.seedLabel} · ${ACTIVE_STAGE.name} · FOG ${Math.round((ACTIVE_STAGE.personality.atmosphere ?? 0) * 100)}</div>
       <div class="fps-readout disabled" aria-hidden="true">FPS -- · CPU -- MS · MAX --</div>
@@ -532,7 +545,7 @@ export class Game {
     this.leadBoarder.reset(this.player, 0);
     this.chaseCamera.reset();
     this.weather.reset();
-    this.scenery.update(this.camera, this.player);
+    this.scenery.update(this.camera);
     this.updateCenterMessage();
   }
 
@@ -661,9 +674,11 @@ export class Game {
         return;
       }
       this.messageTitleEl.textContent = text.completeTitle;
-      this.messageDetailEl.textContent = text.completeDetail(
-        Math.floor(this.player.distanceTravelled)
-      );
+      this.messageDetailEl.textContent = text.completeDetail({
+        distance: displayedDistance(this.player.distanceTravelled),
+        collisionCount: this.player.collisionCount,
+        longestDistance: displayedDistance(this.player.longestRunDistance),
+      });
       this.nextButtonEl.hidden = Boolean(ACTIVE_TRACK.external);
       this.restartButtonEl.hidden = false;
       this.menuButtonEl.hidden = false;
@@ -713,6 +728,19 @@ export class Game {
 
   updateEnvironment(progress) {
     const environment = sampleEnvironment(this.environmentProfile, progress);
+    const fogLayers = fogLayersAt(
+      this.atmosphereAmount,
+      environment.fogDensityScale,
+      this.weatherSample.nearMist
+    );
+    const visibleNearMistOpacity = nearMistPresentationAt(fogLayers.nearMist).opacity;
+    const clearSky = clearSkyPresentationAt(
+      environment,
+      this.weatherSample,
+      visibleNearMistOpacity
+    );
+    environment.skyZenithColor = clearSky.skyZenithColor;
+    environment.skyHorizonColor = clearSky.skyHorizonColor;
     this.environmentSample = environment;
     this.openFogColor.set(environment.fogColor);
     this.environmentFogDensityScale = environment.fogDensityScale;
@@ -734,7 +762,6 @@ export class Game {
     );
     this.scenery.setEnvironment(
       environment,
-      this.player.heading,
       this.horizonGlowWorldAzimuth
     );
   }
@@ -759,7 +786,7 @@ export class Game {
   updateHud(playback = this.jukebox.playbackState()) {
     const speed01 = THREE.MathUtils.clamp((this.player.speed - 7) / (38 - 7), 0, 1);
     this.speedFillEl.style.width = `${(speed01 * 100).toFixed(1)}%`;
-    this.distanceEl.textContent = `${Math.floor(this.player.distanceTravelled)} M`;
+    this.distanceEl.textContent = `${displayedDistance(this.player.distanceTravelled)} M`;
     this.musicProgressEl.style.width = `${(playback.progress * 100).toFixed(2)}%`;
     const subtitleText = playback.cue?.text ?? '';
     if (subtitleText !== this.currentSubtitleText) {
@@ -812,7 +839,7 @@ export class Game {
     // rideable POV instead of turning steering/camera easing into a literal
     // 1.75x recording.
     this.chaseCamera.update(renderDt * CAMERA_TIME_SCALE);
-    this.scenery.update(this.camera, this.player);
+    this.scenery.update(this.camera);
     this.nightLighting.update(this.player);
     const playback = this.jukebox.playbackState();
     this.leadBoarder.update(renderDt, this.player, playback.progress);
@@ -825,8 +852,8 @@ export class Game {
       this.updateCenterMessage();
     }
     const tunnel = tunnelAmountAt(this.player.courseS);
-    this.updateEnvironment(playback.progress);
     this.weatherSample = sampleWeather(this.weatherProfile, playback.progress);
+    this.updateEnvironment(playback.progress);
     this.updateAtmosphere();
     this.weather.update(
       renderDt,

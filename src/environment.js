@@ -72,6 +72,69 @@ function mixColor(a, b, amount) {
   return (r << 16) | (g << 8) | blue;
 }
 
+function smoothRange(value, start, end) {
+  const linear = clamp01((value - start) / Math.max(0.0001, end - start));
+  return linear * linear * (3 - 2 * linear);
+}
+
+const CLEAR_SKY_ZENITH = 0x4098c9;
+const CLEAR_SKY_HORIZON = 0xb8dff0;
+const OVERCAST_SKY_ZENITH = 0xcbd5d8;
+const OVERCAST_SKY_HORIZON = 0xe4e8e8;
+const STORM_SKY_ZENITH = 0x8f999d;
+const STORM_SKY_HORIZON = 0xb2b8ba;
+
+export function clearSkyPresentationAt(
+  environment,
+  weather,
+  visibleNearMistOpacity = weather?.nearMist ?? 0
+) {
+  const elevation = environment?.sunElevationDeg ?? -20;
+  const phase = environment?.phase ?? 0;
+  const horizonGlow = environment?.horizonGlowStrength ?? 0;
+
+  // Existing daylight cues determine whether blue sky is possible. Normal
+  // morning/day profiles become clearer as the sun rises. The dawn profile
+  // keeps its warm horizon until late in its transition, then may resolve into
+  // blue when the weather itself is also clear. Sunset and night never qualify.
+  const daylightPotential = smoothRange(elevation, 8, 18);
+  const dawnPotential = smoothRange(phase, 0.35, 0.92)
+    * smoothRange(elevation, -4, -1)
+    * (1 - smoothRange(horizonGlow, 0.025, 0.16));
+  const timePotential = Math.max(daylightPotential, dawnPotential);
+
+  // A small amount of either snow or visibly presented mist is enough to end
+  // blue sky. Snow still reaches the storm palette quickly, while fog alone
+  // remains bright overcast until the on-screen veil is genuinely dense.
+  const snowPressure = clamp01(((weather?.snowfall ?? 0) - 0.015) / 0.085);
+  const mistPressure = clamp01((visibleNearMistOpacity - 0.015) / 0.24);
+  const weatherPressure = Math.max(snowPressure, mistPressure);
+  const clearWeight = 1 - smoothRange(weatherPressure, 0, 0.28);
+  const snowStormWeight = smoothRange(snowPressure, 0.58, 1);
+  const fogStormWeight = smoothRange(mistPressure, 0.82, 1);
+  const stormWeight = Math.max(snowStormWeight, fogStormWeight);
+  const overcastWeight = smoothRange(weatherPressure, 0, 0.28) * (1 - stormWeight);
+  const presentationStrength = clamp01(timePotential * 0.92);
+
+  const preStormZenith = mixColor(CLEAR_SKY_ZENITH, OVERCAST_SKY_ZENITH, 1 - clearWeight);
+  const preStormHorizon = mixColor(CLEAR_SKY_HORIZON, OVERCAST_SKY_HORIZON, 1 - clearWeight);
+  // A true daytime storm ends at neutral grey. Dawn uses its original muted
+  // palette so Track 1's accepted snowy morning is not recolored wholesale.
+  const stormZenith = mixColor(environment.skyZenithColor, STORM_SKY_ZENITH, daylightPotential);
+  const stormHorizon = mixColor(environment.skyHorizonColor, STORM_SKY_HORIZON, daylightPotential);
+  const weatherZenith = mixColor(preStormZenith, stormZenith, stormWeight);
+  const weatherHorizon = mixColor(preStormHorizon, stormHorizon, stormWeight);
+  const amount = presentationStrength * clearWeight;
+
+  return {
+    amount,
+    overcastAmount: presentationStrength * overcastWeight,
+    weatherPressure,
+    skyZenithColor: mixColor(environment.skyZenithColor, weatherZenith, presentationStrength),
+    skyHorizonColor: mixColor(environment.skyHorizonColor, weatherHorizon, presentationStrength),
+  };
+}
+
 export function environmentPhaseAt(profile, progress) {
   const transitionEnd = Math.max(0.01, profile?.transitionEnd ?? 1);
   const linear = clamp01(progress / transitionEnd);

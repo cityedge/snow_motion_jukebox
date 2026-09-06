@@ -87,6 +87,7 @@ export class Player {
     this.launchIntensity = 0;
     this.collisionImpact = 0;
     this.collisionCooldown = 0.15;
+    this.resetRunStats();
 
     this.group.visible = false;
     this.syncVisual(0);
@@ -120,8 +121,33 @@ export class Player {
   }
 
   finishRun() {
+    this.captureLongestCollisionFreeDistance();
     this.finished = true;
     this.speed = 0;
+  }
+
+  resetRunStats() {
+    this.collisionCount = 0;
+    this.collisionFreeSegmentStart = this.distanceTravelled;
+    this.longestCollisionFreeDistance = 0;
+  }
+
+  captureLongestCollisionFreeDistance() {
+    const segmentDistance = Math.max(
+      0,
+      this.distanceTravelled - this.collisionFreeSegmentStart
+    );
+    this.longestCollisionFreeDistance = Math.max(
+      this.longestCollisionFreeDistance,
+      segmentDistance
+    );
+    return segmentDistance;
+  }
+
+  recordObstacleCollision() {
+    this.captureLongestCollisionFreeDistance();
+    this.collisionCount += 1;
+    this.collisionFreeSegmentStart = this.distanceTravelled;
   }
 
   updateGround(dt, input) {
@@ -274,6 +300,8 @@ export class Player {
   hitObstacle(obstacle) {
     if (!obstacle || this.collisionCooldown > 0 || this.state !== 'GROUND') return false;
 
+    this.recordObstacleCollision();
+
     const side = this.courseD >= obstacle.d ? 1 : -1;
     const severity = obstacle.type === 'tree' ? 1.0 : 0.72;
     this.collisionImpact = Math.max(this.collisionImpact, severity);
@@ -381,6 +409,13 @@ export class Player {
 
   get distanceTravelled() {
     return Math.max(0, this.courseS - 12);
+  }
+
+  get longestRunDistance() {
+    return Math.max(
+      this.longestCollisionFreeDistance,
+      this.distanceTravelled - this.collisionFreeSegmentStart
+    );
   }
 }
 

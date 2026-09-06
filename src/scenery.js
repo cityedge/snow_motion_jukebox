@@ -42,6 +42,16 @@ const TREE_ATLAS_NORMAL_URL = new URL('../textures/tree/tree-atlas-normal.png', 
 const ROCK_COLOR_URL = new URL('../textures/rock/rock-color.png', import.meta.url).href;
 const ROCK_NORMAL_URL = new URL('../textures/rock/rock-normal.png', import.meta.url).href;
 const ROCK_ROUGHNESS_URL = new URL('../textures/rock/rock-roughness.png', import.meta.url).href;
+export const DISTANT_SUN_DISTANCE = 1450;
+
+export function distantSunLocalPosition(worldAzimuth, elevationDeg, target = new THREE.Vector3()) {
+  const elevation = THREE.MathUtils.degToRad(elevationDeg);
+  return target.set(
+    Math.sin(worldAzimuth) * DISTANT_SUN_DISTANCE,
+    88 + Math.tan(elevation) * DISTANT_SUN_DISTANCE,
+    Math.cos(worldAzimuth) * DISTANT_SUN_DISTANCE
+  );
+}
 
 function createTreeCardGeometry(atlasColumn) {
   const height = 5.55;
@@ -607,26 +617,38 @@ function createDistantForestBand() {
   const rand = seededRandom(ACTIVE_STAGE.seeds.farForest);
   const group = new THREE.Group();
   const layers = [
-    { mountain: DISTANT_MOUNTAIN_CONFIGS[1], widthScale: 0.94, count: 320, color: 0x7397a2, scale: 1.0 },
-    { mountain: DISTANT_MOUNTAIN_CONFIGS[2], widthScale: 0.94, count: 400, color: 0x86a7b2, scale: 0.82 },
+    { mountain: DISTANT_MOUNTAIN_CONFIGS[1], count: 900, color: 0x7397a2, scale: 1.0 },
+    { mountain: DISTANT_MOUNTAIN_CONFIGS[2], count: 1100, color: 0x86a7b2, scale: 0.82 },
   ];
 
   for (const layer of layers) {
-    const width = layer.mountain.width * layer.widthScale;
     const geometry = new THREE.BufferGeometry();
     const vertices = [];
     const indices = [];
     for (let i = 0; i < layer.count; i++) {
-      const x = (rand() - 0.5) * width;
+      const angle = rand() * Math.PI * 2;
+      const radius = layer.mountain.radius - 4 - rand() * 12;
+      const x = Math.sin(angle) * radius;
+      const z = Math.cos(angle) * radius;
       const h = (8 + rand() * 18) * layer.scale;
       const w = h * (0.24 + rand() * 0.12);
       // Trees share the exact ridge function used by their backing mountain.
       // Keeping them a few metres in front and embedding the base slightly in
       // the snow guarantees that no detached treetop can float against the sky.
-      const y = distantMountainRidgeAt(layer.mountain, x) - 1.2 - rand() * 1.6;
-      const z = layer.mountain.z - 4 - rand() * 12;
+      const y = distantMountainRidgeAt(
+        layer.mountain,
+        angle * layer.mountain.radius
+      ) - 1.2 - rand() * 1.6;
+      // Each simple tree triangle lies tangent to its ring and therefore faces
+      // inward toward the camera from every possible viewing direction.
+      const tx = Math.cos(angle) * w;
+      const tz = -Math.sin(angle) * w;
       const base = vertices.length / 3;
-      vertices.push(x - w, y, z, x + w, y, z, x, y + h, z);
+      vertices.push(
+        x - tx, y, z - tz,
+        x + tx, y, z + tz,
+        x, y + h, z,
+      );
       indices.push(base, base + 1, base + 2);
     }
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -790,16 +812,16 @@ export class Scenery {
     // render pass, so it can never cover the real course in front of the rider.
     this.farSnowMaterial = new THREE.MeshBasicMaterial({ color: 0xdcebef, fog: true });
     const farSnow = new THREE.Mesh(
-      new THREE.PlaneGeometry(2400, 1900),
+      new THREE.CircleGeometry(1420, 128),
       this.farSnowMaterial
     );
     farSnow.rotation.x = -Math.PI / 2;
-    farSnow.position.set(0, -125, 850);
+    farSnow.position.set(0, -125, 0);
     this.farGroup.add(farSnow);
     farScene.add(this.farGroup);
   }
 
-  setEnvironment(environment, playerHeading = 0, glowWorldAzimuth = 0) {
+  setEnvironment(environment, glowWorldAzimuth = 0) {
     this.farSnowMaterial.color.set(environment.snowColor);
     this.tunnelSnowMaterial.color.set(environment.snowColor);
     // The sky dome is visible through a tunnel exit, so it must retain the
@@ -819,13 +841,13 @@ export class Scenery {
     this.sun.discMaterial.opacity = environment.sunOpacity;
     this.sun.haloMaterial.opacity = environment.sunOpacity * 0.55;
 
-    const distance = 1450;
-    const azimuth = glowWorldAzimuth - playerHeading;
-    const elevation = THREE.MathUtils.degToRad(environment.sunElevationDeg);
-    this.sun.group.position.set(
-      Math.sin(azimuth) * distance,
-      88 + Math.tan(elevation) * distance,
-      Math.cos(azimuth) * distance
+    // The far ring never rotates with steering, so the sun can use its actual
+    // world azimuth directly. At 1450 m it remains beyond all mountain layers
+    // and can be naturally occluded by their ridgelines.
+    distantSunLocalPosition(
+      glowWorldAzimuth,
+      environment.sunElevationDeg,
+      this.sun.group.position
     );
   }
 
@@ -862,13 +884,14 @@ export class Scenery {
     return best;
   }
 
-  update(camera, player) {
-    // Distant scenery is a stage set: it follows the viewer and turns with the
-    // ride direction so a real horizontal bend never exposes the edge of the sky.
+  update(camera) {
+    // The 360-degree stage set follows the viewer in translation only. Its
+    // world orientation stays fixed, so steering produces the correct opposite
+    // screen motion without ever exposing an edge or reverse side.
     this.farGroup.position.x = camera.position.x;
     this.farGroup.position.z = camera.position.z;
     this.farGroup.position.y = camera.position.y - 88;
-    this.farGroup.rotation.y = player.heading;
+    this.farGroup.rotation.y = 0;
     this.sky.mesh.position.copy(camera.position);
   }
 }
